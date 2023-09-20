@@ -1,11 +1,43 @@
+use std::sync::Mutex;
 use std::time::Duration;
-use actix_web::{get, post, web, App, HttpResponse, Responder, HttpServer, Result};
+use actix_web::{get, post, web, App, HttpResponse, Responder, HttpServer, Result, guard};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+
+struct Payload {
+    tablename: String,
+}
+struct AppState {
+    app_name: String,
+}
+
+struct AppStateWithCounter {
+    counter: Mutex<i32>,
+}
+
+async fn show_table()
+async fn state(data: web::Data<AppState>) -> String {
+    let app_name = &data.app_name;
+    format!("hello {app_name}")
+}
+
+async fn index(data: web::Data<AppStateWithCounter>) -> String {
+    let mut counter = data.counter.lock().unwrap();
+    *counter += 1;
+    format!("Request number: {counter}")
+}
 
 #[get("/hello")]
 async fn hello() -> impl Responder {
     std::thread::sleep(Duration::from_secs(5));
     "hello"
+}
+
+async fn sleep() -> impl Responder {
+    "sleep"
+}
+
+async fn overslept() -> impl Responder {
+    "Re: overslept"
 }
 
 async fn scope() -> impl Responder {
@@ -17,6 +49,7 @@ async fn path_extract(path: web::Path<(u32, String)>) -> Result<String> {
     let (user_id, name) = path.into_inner();
     Ok(format!("Welcom: {}, user_id: {}.", name, user_id))
 }
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
@@ -25,14 +58,30 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     builder.set_certificate_chain_file("cert.pem").unwrap();
 
-    HttpServer::new(|| {
+    let counter = web::Data::new(AppStateWithCounter {
+        counter: Mutex::new(0),
+    });
+    HttpServer::new(move || {
         App::new()
             .service(
                 web::scope("/scope")
                     .route("/hehe", web::get().to(scope)),
             )
+            .service(
+                web::scope("/sleep")
+                    .route("/overslept", web::get().to(overslept))
+                    .guard(guard::Host("www.baidu.com"))
+                    .route("/sleep", web::get().to(sleep)),
+            )
             .service(hello)
             .service(path_extract)
+            .app_data(web::Data::new(AppState {
+                app_name: String::from("Actix web xj..."),
+            }))
+            // 根据测试，app_data只在之后起作用，而guard与顺序无关；需要文档验证；
+            .app_data(counter.clone())
+            .route("/index", web::get().to(index))
+            .route("/state", web::get().to(state))
     })
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()
