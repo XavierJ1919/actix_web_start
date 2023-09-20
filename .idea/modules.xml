@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ProjectModuleManager">
@@ -5,4 +6,13 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/actix_web_start.iml" filepath="$PROJECT_DIR$/.idea/actix_web_start.iml" />
     </modules>
   </component>
+=======
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/actix_web_test1.iml" filepath="$PROJECT_DIR$/.idea/actix_web_test1.iml" />
+    </modules>
+  </component>
+>>>>>>> 9aa6c1213d452eede212d50c32e6775040fc55b3
 </project>
