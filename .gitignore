@@ -1,3 +1,4 @@
 /target
 *.pem
 /.idea
+.DS_store
