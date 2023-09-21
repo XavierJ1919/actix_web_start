@@ -1,10 +1,28 @@
+use std::fmt::format;
 use std::sync::Mutex;
 use std::time::Duration;
 use actix_web::{get, post, web, App, HttpResponse, Responder, HttpServer, Result, guard};
+use actix_web::dev::JsonBody;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use serde::Deserialize;
 
 mod response;
 
+#[derive(Deserialize)]
+struct DecodedData {
+    username: String,
+}
+#[derive(Deserialize)]
+struct BodyInfo {
+    flavor: String,
+    size: u16,
+    name_list: Vec<String>,
+    // num_array: [u8;3],
+}
+#[derive(Deserialize)]
+struct QueryInfo {
+    username: String,
+}
 struct Payload {
     tablename: String,
 }
@@ -52,6 +70,23 @@ async fn path_extract(path: web::Path<(u32, String)>) -> Result<String> {
     Ok(format!("Welcom: {}, user_id: {}.", name, user_id))
 }
 
+#[get("/getinfo")]
+async fn get_username(info: web::Query<QueryInfo>) -> String {
+    let username = &info.username;
+    format!("get query: {}", username)
+}
+
+#[post("/submit")]
+async fn submit_info(info: web::Json<BodyInfo>) -> Result<String> {
+    Ok(format!("get body from request, flavor: {}, size: {}, name_list: {:#?}", info.flavor, info.size, info.name_list))
+    // Ok(format!("get body from request, flavor: {}, size: {}, num_array: {:#?}", info.flavor, info.size, info.num_array))
+}
+
+#[post("/decodeurl")]
+async fn decode_url(info: web::Form<DecodedData>) -> Result<String> {
+    Ok(format!("Re, get decoded data: {}", info.username))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
@@ -84,6 +119,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(counter.clone())
             .route("/index", web::get().to(index))
             .route("/state", web::get().to(state))
+            .service(get_username)
+            .service(submit_info)
+            .service(decode_url)
     })
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()
