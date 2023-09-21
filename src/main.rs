@@ -3,6 +3,8 @@ use std::time::Duration;
 use actix_web::{get, post, web, App, HttpResponse, Responder, HttpServer, Result, guard};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 
+mod response;
+
 struct Payload {
     tablename: String,
 }
@@ -14,7 +16,7 @@ struct AppStateWithCounter {
     counter: Mutex<i32>,
 }
 
-async fn show_table()
+// async fn show_table()
 async fn state(data: web::Data<AppState>) -> String {
     let app_name = &data.app_name;
     format!("hello {app_name}")
