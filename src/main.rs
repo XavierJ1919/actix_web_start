@@ -5,8 +5,11 @@ use actix_web::{get, post, web, App, HttpResponse, Responder, HttpServer, Result
 use actix_web::dev::JsonBody;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
+use util::error::UserError;
+use crate::util::error::do_thing_that_fails;
 
 mod response;
+mod util;
 
 #[derive(Deserialize)]
 struct DecodedData {
@@ -87,6 +90,11 @@ async fn decode_url(info: web::Form<DecodedData>) -> Result<String> {
     Ok(format!("Re, get decoded data: {}", info.username))
 }
 
+#[get("/testerror")]
+async fn test_error() -> Result<&'static str, UserError> {
+    do_thing_that_fails().map_err(|_e| UserError::InternalError)?;
+    Ok("success!")
+}
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
@@ -122,6 +130,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_username)
             .service(submit_info)
             .service(decode_url)
+            .service(test_error)
     })
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()

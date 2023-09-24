@@ -209,6 +209,7 @@ name = "actix_web_start"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "derive_more",
  "openssl",
  "serde",
 ]
