@@ -7,6 +7,7 @@ use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
 use util::error::UserError;
 use crate::util::error::do_thing_that_fails;
+use crate::util::{external_resource, resource_url};
 
 mod response;
 mod util;
@@ -131,6 +132,15 @@ async fn main() -> std::io::Result<()> {
             .service(submit_info)
             .service(decode_url)
             .service(test_error)
+            .service(
+                web::resource("/resource_url/{a}/{b}/{c}")
+                    .name("foo")
+                    .guard(guard::Get())
+                    .to(HttpResponse::Ok),
+            )
+            .service(resource_url)
+            .service(external_resource)
+            .external_resource("youtube", "https://youtube.com/watch/{videio_id}")
     })
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()
