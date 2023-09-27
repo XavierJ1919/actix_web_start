@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use std::time::Duration;
-use actix_web::{get, post, web, App, http::header, HttpRequest, HttpResponse, Responder, HttpServer, Result, guard};
+use actix_web::{get, post, web, App, http::header, HttpRequest, HttpResponse, Responder, HttpServer, Result, guard, middleware};
 // pub use actix_web::{get, post, web, App, HttpResponse, Responder, HttpServer, Result, guard, Error, http::header};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
@@ -8,6 +8,7 @@ use util::error::UserError;
 use crate::util::error::do_thing_that_fails;
 use crate::util::resource::{external_resource, resource_url};
 use crate::util::request::request_manual;
+use crate::util::response::{get_resp_compress, get_response};
 
 mod util;
 
@@ -141,6 +142,9 @@ async fn main() -> std::io::Result<()> {
             .service(external_resource)
             .external_resource("youtube", "https://youtube.com/watch/{videio_id}")
             .service(request_manual)
+            .service(get_response)
+            .wrap(middleware::Compress::default())
+            .service(get_resp_compress)
     })
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()
