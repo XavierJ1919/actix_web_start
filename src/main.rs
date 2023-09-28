@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 use std::time::Duration;
-use actix_web::{get, post, web, App, http::header, HttpRequest, HttpResponse, Responder, HttpServer, Result, guard, middleware, middleware::Logger};
+use actix_session::{SessionMiddleware, storage::CookieSessionStore};
+use actix_web::{get, post, web, App, http::header, HttpRequest, HttpResponse, Responder, HttpServer, Result, guard, middleware, middleware::Logger, cookie::Key};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
 use env_logger::Env;
@@ -10,6 +11,7 @@ use crate::util::error::do_thing_that_fails;
 use crate::http::resource::{external_resource, resource_url};
 use crate::http::request::request_manual;
 use crate::http::response::{get_resp_compress, get_response};
+use crate::util::session::get_session;
 
 mod http;
 mod util;
@@ -114,6 +116,9 @@ async fn main() -> std::io::Result<()> {
     let counter = web::Data::new(AppStateWithCounter {
         counter: Mutex::new(0),
     });
+
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
+
     HttpServer::new(move || {
         App::new()
             .service(
@@ -152,6 +157,13 @@ async fn main() -> std::io::Result<()> {
             .service(get_response)
             .wrap(middleware::Compress::default())
             .service(get_resp_compress)
+            .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i"))
+            .wrap(SessionMiddleware::builder(CookieSessionStore::default(), Key::from(&[0; 64]))
+                .cookie_secure(false)
+                .build()
+            )
+            .service(web::resource("/get_session").to(get_session))
     })
         .bind_openssl("127.0.0.1:8080", builder)?
         .run()
