@@ -1,21 +1,24 @@
 use std::sync::Mutex;
 use std::time::Duration;
-use actix_web::{get, post, web, App, http::header, HttpRequest, HttpResponse, Responder, HttpServer, Result, guard, middleware};
-// pub use actix_web::{get, post, web, App, HttpResponse, Responder, HttpServer, Result, guard, Error, http::header};
+use actix_web::{get, post, web, App, http::header, HttpRequest, HttpResponse, Responder, HttpServer, Result, guard, middleware, middleware::Logger};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
+use env_logger::Env;
+
 use util::error::UserError;
 use crate::util::error::do_thing_that_fails;
-use crate::util::resource::{external_resource, resource_url};
-use crate::util::request::request_manual;
-use crate::util::response::{get_resp_compress, get_response};
+use crate::http::resource::{external_resource, resource_url};
+use crate::http::request::request_manual;
+use crate::http::response::{get_resp_compress, get_response};
 
+mod http;
 mod util;
 
 #[derive(Deserialize)]
 struct DecodedData {
     username: String,
 }
+
 #[derive(Deserialize)]
 struct BodyInfo {
     flavor: String,
@@ -23,13 +26,16 @@ struct BodyInfo {
     name_list: Vec<String>,
     // num_array: [u8;3],
 }
+
 #[derive(Deserialize)]
 struct QueryInfo {
     username: String,
 }
+
 struct Payload {
     tablename: String,
 }
+
 struct AppState {
     app_name: String,
 }
@@ -96,6 +102,7 @@ async fn test_error() -> Result<&'static str, UserError> {
     do_thing_that_fails().map_err(|_e| UserError::InternalError)?;
     Ok("success!")
 }
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
