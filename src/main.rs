@@ -12,9 +12,12 @@ use crate::http::resource::{external_resource, resource_url};
 use crate::http::request::request_manual;
 use crate::http::response::{get_resp_compress, get_response};
 use crate::util::session::get_session;
+use crate::util::static_file::static_file;
+use crate::websocket::ws_server;
 
 mod http;
 mod util;
+mod websocket;
 
 #[derive(Deserialize)]
 struct DecodedData {
@@ -164,8 +167,13 @@ async fn main() -> std::io::Result<()> {
                 .build()
             )
             .service(web::resource("/get_session").to(get_session))
+            .service(static_file)
+            // path这个没有完全理解 #todo
+            .service(actix_files::Files::new("/src/util",".").show_files_listing())
+            .service(ws_server)
     })
-        .bind_openssl("127.0.0.1:8080", builder)?
+        // .bind_openssl("127.0.0.1:8080", builder)?
+        .bind(("127.0.0.1", 8080))?
         .run()
         .await
 }
